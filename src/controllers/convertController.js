@@ -20,7 +20,7 @@ export async function convertExceltoPDFFile(req, res) {
     const { name } = path.parse(file.filename);
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${name}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${name}_excel_to_pdf.pdf"`);
     res.send(pdfBuffer);
 
   } catch (err) {
@@ -51,7 +51,7 @@ export async function convertJSONtoPDFFile(req, res) {
     const { name } = path.parse(file.filename);
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${name}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${name}.json_to_pdf.pdf"`);
     res.send(pdfBuffer);
 
   } catch (err) {
@@ -60,47 +60,52 @@ export async function convertJSONtoPDFFile(req, res) {
   }
 }
 
+export async function convertExceltoJSONFile(req, res) {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
-// export async function convertFile(req, res) {
+    logger.info("inside convertExceltoJSONFile...");
+    logger.info(file.filename);
+    logger.info(file.path);
+
+    // 1. Parse Excel file to JSON data
+    const jsonContent = await parseExcelToJson(file.path);
+
+
+    // 3. Delete uploaded Excel file
+    await fs.unlink(file.path);
+
+    // 4. Set headers and send PDF
+    const { name } = path.parse(file.filename);
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}_excel_to_json.json"`);
+    res.send(jsonContent);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+}
+// export async function convertExceltoJSONFile(req, res) {
 //   try {
-//     console.log(req.file);
 //     const file = req.file;
 //     if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
-//     // Convert Excel to JSON
-//     // const jsonData = await parseExcelToJson(file.path);
+//     logger.info("inside convertExceltoJSONFile...");
+//     logger.info(req.file.filename);
+//     logger.info(req.file.path);
 
-//     // Convert JSON to PDF buffer
-//     const pdfBuffer = await convertExcelToPdf(file.path);
+//     const jsonContent = await parseExcelToJson(file.path);
 
-//     // Cleanup uploaded file after processing
-//     await fs.unlink(file.path);
-//     const { name } = path.parse(req.file.filename);
-//     // Return PDF as response
-//     res.set({
-//       'Content-Type': 'application/pdf',
-//       'Content-Disposition': `attachment; filename=${name}.pdf`,
-//     });
+    
+//     await fs.unlink(file.path); // Delete uploaded file after PDF created
+
+//     const { name } = path.parse(file.filename);
+
+//     res.setHeader('Content-Type', 'application/pdf');
+//     res.setHeader('Content-Disposition', `attachment; filename="${name}.pdf"`);
 //     res.send(pdfBuffer);
-
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: err.message });
-//   }
-// }
-// export async function convertFileToJson(req, res) {
-//   try {
-//     const file = req.file;
-//     if (!file) return res.status(400).json({ error: 'No file uploaded' });
-
-//     // Convert Excel to JSON
-//     const jsonData = await parseExcelToJson(file.path);
-
-//     // Cleanup uploaded file after processing
-//     await fs.unlink(file.path);
-
-//     // Return JSON as response
-//     res.json(jsonData);
 
 //   } catch (err) {
 //     console.error(err);
