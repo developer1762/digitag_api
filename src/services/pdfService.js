@@ -4,9 +4,84 @@ import getStream from 'get-stream';
 import pdfTable from 'pdfkit-table'; // default import since it's CommonJS
 import xlsx from 'xlsx';
 import PDFDocumentWithTables from 'pdfkit-table'; // ✅ default export is already extended!
-
 const { readFile, utils } = xlsx;
 
+
+export async function convertJsonToPdfCol(jsonData) {
+  if (!Array.isArray(jsonData) || jsonData.length === 0) {
+    throw new Error('Invalid or empty JSON data.');
+  }
+
+  const doc = new PDFDocumentWithTables({ margin: 30 });
+  const buffers = [];
+  doc.on('data', buffers.push.bind(buffers));
+
+  const headers = Object.keys(jsonData[0]);
+  rows = Object.entries(jsonData).map(([key, val]) => [key, flattenValue(val)]);
+  
+  doc.table(
+    {
+      title: 'JSON Data as PDF',
+      headers,
+      rows,
+    },
+    {
+      prepareHeader: () => doc.font('Helvetica-Bold').fontSize(10),
+      prepareRow: () => doc.font('Helvetica').fontSize(9),
+    }
+  );
+
+  doc.end();
+
+  return new Promise((resolve, reject) => {
+    doc.on('end', () => resolve(Buffer.concat(buffers)));
+    doc.on('error', reject);
+  });
+}
+
+function flattenValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(item => (typeof item === 'object' ? JSON.stringify(item, null, 2) : item)).join('\n');
+  }
+  if (typeof value === 'object' && value !== null) {
+    return JSON.stringify(value, null, 2);
+  }
+  return value ?? '';
+}
+
+export async function convertJsonToPdfRow(jsonData) {
+  if (!Array.isArray(jsonData) || jsonData.length === 0) {
+    throw new Error('Invalid or empty JSON data.');
+  }
+
+  const obj = jsonData[0];  // assume only one object
+
+  const headers = ['Key', 'Value'];
+  const rows = Object.entries(obj).map(([key, value]) => [key, flattenValue(value)]);
+
+  const doc = new PDFDocumentWithTables({ margin: 30 });
+  const buffers = [];
+  doc.on('data', buffers.push.bind(buffers));
+
+  doc.table(
+    {
+      title: 'JSON Data as PDF',
+      headers,
+      rows,
+    },
+    {
+      prepareHeader: () => doc.font('Helvetica-Bold').fontSize(10),
+      prepareRow: () => doc.font('Helvetica').fontSize(9),
+    }
+  );
+
+  doc.end();
+
+  return new Promise((resolve, reject) => {
+    doc.on('end', () => resolve(Buffer.concat(buffers)));
+    doc.on('error', reject);
+  });
+}
 
 export async function convertExcelToPdf(excelFilePath) {
   const workbook = xlsx.readFile(excelFilePath);

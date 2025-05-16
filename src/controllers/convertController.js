@@ -1,11 +1,13 @@
 import { parseExcelToJson } from '../services/excelService.js';
-import { generatePdfFromJson, convertXlsxToPdf, convertExcelToPdf } from '../services/pdfService.js';
+import { generatePdfFromJson, convertXlsxToPdf, convertExcelToPdf, convertJsonToPdfRow, convertJsonToPdfCol } from '../services/pdfService.js';
 import fs from 'fs/promises';
 import path from 'path';
+import logger from '../utils/logger.js';
 
-export async function convertFile(req, res) {
+export async function convertExceltoPDFFile(req, res) {
   try {
-    console.log(req.file);
+    logger.info("inside convertExceltoPDFFile...");
+    logger.info(req.file.filename);
     const file = req.file;
     if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
@@ -23,9 +25,41 @@ export async function convertFile(req, res) {
 
   } catch (err) {
     console.error(err);
+    logger.error(err);
     res.status(500).json({ error: err.message });
   }
 }
+
+export async function convertJSONtoPDFFile(req, res) {
+  try {
+    logger.info("inside convertJSONtoPDFFile...");
+    logger.info(req.file.filename);
+
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No file uploaded' });
+    const jsonContent = await fs.readFile(file.path, 'utf-8');
+    let jsonData = JSON.parse(jsonContent);
+    if (Array.isArray(jsonData) === false) {
+      jsonData = [jsonData];
+    }
+    const pdfBuffer = await convertJsonToPdfRow(jsonData);
+
+    console.log('PDF Buffer length:', pdfBuffer.length);
+
+    await fs.unlink(file.path); // Delete uploaded file after PDF created
+
+    const { name } = path.parse(file.filename);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}.pdf"`);
+    res.send(pdfBuffer);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
 
 // export async function convertFile(req, res) {
 //   try {
@@ -54,22 +88,22 @@ export async function convertFile(req, res) {
 //     res.status(500).json({ error: err.message });
 //   }
 // }
-export async function convertFileToJson(req, res) {
-  try {
-    const file = req.file;
-    if (!file) return res.status(400).json({ error: 'No file uploaded' });
+// export async function convertFileToJson(req, res) {
+//   try {
+//     const file = req.file;
+//     if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
-    // Convert Excel to JSON
-    const jsonData = await parseExcelToJson(file.path);
+//     // Convert Excel to JSON
+//     const jsonData = await parseExcelToJson(file.path);
 
-    // Cleanup uploaded file after processing
-    await fs.unlink(file.path);
+//     // Cleanup uploaded file after processing
+//     await fs.unlink(file.path);
 
-    // Return JSON as response
-    res.json(jsonData);
+//     // Return JSON as response
+//     res.json(jsonData);
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
-}
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: err.message });
+//   }
+// }

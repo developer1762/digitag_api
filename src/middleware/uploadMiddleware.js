@@ -1,6 +1,8 @@
 import multer from 'multer';
 import path from 'path';
+import logger from '../utils/logger.js';
 
+logger.info("inside uploadMiddleware...");
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/'); // Make sure uploads folder exists
